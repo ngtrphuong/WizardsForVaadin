@@ -13,7 +13,6 @@ import org.vaadin.teemu.wizards.event.WizardProgressListener;
 import org.vaadin.teemu.wizards.event.WizardStepActivationEvent;
 import org.vaadin.teemu.wizards.event.WizardStepSetChangedEvent;
 
-import com.google.gwt.thirdparty.guava.common.base.Preconditions;
 import com.vaadin.server.Page;
 import com.vaadin.server.Page.UriFragmentChangedEvent;
 import com.vaadin.server.Page.UriFragmentChangedListener;
@@ -55,228 +54,258 @@ import com.vaadin.ui.VerticalLayout;
  * @author Teemu Pöntelin / Vaadin Ltd
  */
 @SuppressWarnings("serial")
-public class Wizard extends CustomComponent implements
-        UriFragmentChangedListener {
+public class Wizard extends CustomComponent implements UriFragmentChangedListener
+{
 
-    protected final List<WizardStep> steps = new ArrayList<WizardStep>();
-    protected final Map<String, WizardStep> idMap = new HashMap<String, WizardStep>();
-    private final Map<WizardStep, ScrollPosition> scrollPositions = new HashMap<WizardStep, ScrollPosition>();
+	protected final List<WizardStep> steps = new ArrayList<WizardStep>();
+	protected final Map<String, WizardStep> idMap = new HashMap<String, WizardStep>();
+	private final Map<WizardStep, ScrollPosition> scrollPositions = new HashMap<WizardStep, ScrollPosition>();
 
-    protected WizardStep currentStep;
-    protected WizardStep lastCompletedStep;
+	protected WizardStep currentStep;
+	protected WizardStep lastCompletedStep;
 
-    private int stepIndex = 1;
+	private int stepIndex = 1;
 
-    protected VerticalLayout mainLayout;
-    protected HorizontalLayout footer;
-    private Panel contentPanel;
+	protected VerticalLayout mainLayout;
+	protected HorizontalLayout footer;
+	private Panel contentPanel;
 
-    private Button nextButton;
-    private Button backButton;
-    private Button finishButton;
-    private Button cancelButton;
+	private Button nextButton;
+	private Button backButton;
+	private Button finishButton;
+	private Button cancelButton;
 
-    private Component header;
-    private boolean uriFragmentEnabled;
+	private Component header;
+	private boolean uriFragmentEnabled;
 
-    private static final Method WIZARD_ACTIVE_STEP_CHANGED_METHOD;
-    private static final Method WIZARD_STEP_SET_CHANGED_METHOD;
-    private static final Method WIZARD_COMPLETED_METHOD;
-    private static final Method WIZARD_CANCELLED_METHOD;
+	private static final Method WIZARD_ACTIVE_STEP_CHANGED_METHOD;
+	private static final Method WIZARD_STEP_SET_CHANGED_METHOD;
+	private static final Method WIZARD_COMPLETED_METHOD;
+	private static final Method WIZARD_CANCELLED_METHOD;
 
-    static {
-        try {
-            WIZARD_COMPLETED_METHOD = WizardProgressListener.class
-                    .getDeclaredMethod("wizardCompleted",
-                            new Class[] { WizardCompletedEvent.class });
-            WIZARD_STEP_SET_CHANGED_METHOD = WizardProgressListener.class
-                    .getDeclaredMethod("stepSetChanged",
-                            new Class[] { WizardStepSetChangedEvent.class });
-            WIZARD_ACTIVE_STEP_CHANGED_METHOD = WizardProgressListener.class
-                    .getDeclaredMethod("activeStepChanged",
-                            new Class[] { WizardStepActivationEvent.class });
-            WIZARD_CANCELLED_METHOD = WizardProgressListener.class
-                    .getDeclaredMethod("wizardCancelled",
-                            new Class[] { WizardCancelledEvent.class });
-        } catch (final java.lang.NoSuchMethodException e) {
-            // This should never happen
-            throw new java.lang.RuntimeException(
-                    "Internal error finding methods in Wizard", e);
-        }
-    }
+	static
+	{
+		try
+		{
+			WIZARD_COMPLETED_METHOD = WizardProgressListener.class.getDeclaredMethod("wizardCompleted",
+					new Class[] { WizardCompletedEvent.class });
+			WIZARD_STEP_SET_CHANGED_METHOD = WizardProgressListener.class.getDeclaredMethod("stepSetChanged",
+					new Class[] { WizardStepSetChangedEvent.class });
+			WIZARD_ACTIVE_STEP_CHANGED_METHOD = WizardProgressListener.class.getDeclaredMethod("activeStepChanged",
+					new Class[] { WizardStepActivationEvent.class });
+			WIZARD_CANCELLED_METHOD = WizardProgressListener.class.getDeclaredMethod("wizardCancelled",
+					new Class[] { WizardCancelledEvent.class });
+		}
+		catch (final java.lang.NoSuchMethodException e)
+		{
+			// This should never happen
+			throw new java.lang.RuntimeException("Internal error finding methods in Wizard", e);
+		}
+	}
 
-    private static final class ScrollPosition {
-        int scrollTop;
-        int scrollLeft;
+	private static final class ScrollPosition
+	{
+		int scrollTop;
+		int scrollLeft;
 
-        public ScrollPosition(int scrollTop, int scrollLeft) {
-            this.scrollTop = scrollTop;
-            this.scrollLeft = scrollLeft;
-        }
-    }
+		public ScrollPosition(int scrollTop, int scrollLeft)
+		{
+			this.scrollTop = scrollTop;
+			this.scrollLeft = scrollLeft;
+		}
+	}
 
-    public Wizard() {
-        setStyleName("wizard");
-        init();
-    }
+	public Wizard()
+	{
+		setStyleName("wizard");
+		init();
+	}
 
-    private void init() {
-        mainLayout = new VerticalLayout();
-        setCompositionRoot(mainLayout);
-        setSizeFull();
+	private void init()
+	{
+		mainLayout = new VerticalLayout();
+		setCompositionRoot(mainLayout);
+		setSizeFull();
 
-        contentPanel = new Panel();
-        contentPanel.setSizeFull();
+		contentPanel = new Panel();
+		contentPanel.setSizeFull();
 
-        initControlButtons();
+		initControlButtons();
 
-        footer = new HorizontalLayout();
-        footer.setSpacing(true);
-        footer.addComponent(cancelButton);
-        footer.addComponent(backButton);
-        footer.addComponent(nextButton);
-        footer.addComponent(finishButton);
+		footer = new HorizontalLayout();
+		footer.setSpacing(true);
+		footer.addComponent(cancelButton);
+		footer.addComponent(backButton);
+		footer.addComponent(nextButton);
+		footer.addComponent(finishButton);
 
-        mainLayout.addComponent(contentPanel);
-        mainLayout.addComponent(footer);
-        mainLayout.setComponentAlignment(footer, Alignment.BOTTOM_RIGHT);
+		mainLayout.addComponent(contentPanel);
+		mainLayout.addComponent(footer);
+		mainLayout.setComponentAlignment(footer, Alignment.BOTTOM_RIGHT);
 
-        mainLayout.setExpandRatio(contentPanel, 1.0f);
-        mainLayout.setSizeFull();
+		mainLayout.setExpandRatio(contentPanel, 1.0f);
+		mainLayout.setSizeFull();
 
-        initDefaultHeader();
-    }
+		initDefaultHeader();
+	}
 
-    private void initControlButtons() {
-        nextButton = new Button("Next");
-        nextButton.addClickListener(new Button.ClickListener() {
-            public void buttonClick(ClickEvent event) {
-                next();
-            }
-        });
+	private void initControlButtons()
+	{
+		nextButton = new Button("Next");
+		nextButton.addClickListener(new Button.ClickListener()
+		{
+			@Override
+			public void buttonClick(ClickEvent event)
+			{
+				next();
+			}
+		});
 
-        backButton = new Button("Back");
-        backButton.addClickListener(new Button.ClickListener() {
-            public void buttonClick(ClickEvent event) {
-                back();
-            }
-        });
+		backButton = new Button("Back");
+		backButton.addClickListener(new Button.ClickListener()
+		{
+			@Override
+			public void buttonClick(ClickEvent event)
+			{
+				back();
+			}
+		});
 
-        finishButton = new Button("Finish");
-        finishButton.addClickListener(new Button.ClickListener() {
-            public void buttonClick(ClickEvent event) {
-                finish();
-            }
-        });
-        finishButton.setEnabled(false);
+		finishButton = new Button("Finish");
+		finishButton.addClickListener(new Button.ClickListener()
+		{
+			@Override
+			public void buttonClick(ClickEvent event)
+			{
+				finish();
+			}
+		});
+		finishButton.setEnabled(false);
 
-        cancelButton = new Button("Cancel");
-        cancelButton.addClickListener(new Button.ClickListener() {
-            public void buttonClick(ClickEvent event) {
-                cancel();
-            }
-        });
-    }
+		cancelButton = new Button("Cancel");
+		cancelButton.addClickListener(new Button.ClickListener()
+		{
+			@Override
+			public void buttonClick(ClickEvent event)
+			{
+				cancel();
+			}
+		});
+	}
 
-    private void initDefaultHeader() {
-        WizardProgressBar progressBar = new WizardProgressBar(this);
-        addListener(progressBar);
-        setHeader(progressBar);
-    }
+	private void initDefaultHeader()
+	{
+		WizardProgressBar progressBar = new WizardProgressBar(this);
+		addListener(progressBar);
+		setHeader(progressBar);
+	}
 
-    public void setUriFragmentEnabled(boolean enabled) {
-        if (enabled) {
-            Page.getCurrent().addUriFragmentChangedListener(this);
-        } else {
-            Page.getCurrent().removeUriFragmentChangedListener(this);
-        }
-        uriFragmentEnabled = enabled;
-    }
+	public void setUriFragmentEnabled(boolean enabled)
+	{
+		if (enabled)
+		{
+			Page.getCurrent().addUriFragmentChangedListener(this);
+		}
+		else
+		{
+			Page.getCurrent().removeUriFragmentChangedListener(this);
+		}
+		uriFragmentEnabled = enabled;
+	}
 
-    public boolean isUriFragmentEnabled() {
-        return uriFragmentEnabled;
-    }
+	public boolean isUriFragmentEnabled()
+	{
+		return uriFragmentEnabled;
+	}
 
-    /**
-     * Sets a {@link Component} that is displayed on top of the actual content.
-     * Set to {@code null} to remove the header altogether.
-     * 
-     * @param newHeader
-     *            {@link Component} to be displayed on top of the actual content
-     *            or {@code null} to remove the header.
-     */
-    public void setHeader(Component newHeader) {
-        if (header != null) {
-            if (newHeader == null) {
-                mainLayout.removeComponent(header);
-            } else {
-                mainLayout.replaceComponent(header, newHeader);
-            }
-        } else {
-            if (newHeader != null) {
-                mainLayout.addComponentAsFirst(newHeader);
-            }
-        }
-        this.header = newHeader;
-    }
+	/**
+	 * Sets a {@link Component} that is displayed on top of the actual content.
+	 * Set to {@code null} to remove the header altogether.
+	 * 
+	 * @param newHeader
+	 *            {@link Component} to be displayed on top of the actual content
+	 *            or {@code null} to remove the header.
+	 */
+	public void setHeader(Component newHeader)
+	{
+		if (header != null)
+		{
+			if (newHeader == null)
+			{
+				mainLayout.removeComponent(header);
+			}
+			else
+			{
+				mainLayout.replaceComponent(header, newHeader);
+			}
+		}
+		else
+		{
+			if (newHeader != null)
+			{
+				mainLayout.addComponentAsFirst(newHeader);
+			}
+		}
+		this.header = newHeader;
+	}
 
-    /**
-     * Returns a {@link Component} that is displayed on top of the actual
-     * content or {@code null} if no header is specified.
-     * 
-     * <p>
-     * By default the header is a {@link WizardProgressBar} component that is
-     * also registered as a {@link WizardProgressListener} to this Wizard.
-     * </p>
-     * 
-     * @return {@link Component} that is displayed on top of the actual content
-     *         or {@code null}.
-     */
-    public Component getHeader() {
-        return header;
-    }
+	/**
+	 * Returns a {@link Component} that is displayed on top of the actual
+	 * content or {@code null} if no header is specified.
+	 * 
+	 * <p>
+	 * By default the header is a {@link WizardProgressBar} component that is
+	 * also registered as a {@link WizardProgressListener} to this Wizard.
+	 * </p>
+	 * 
+	 * @return {@link Component} that is displayed on top of the actual content
+	 *         or {@code null}.
+	 */
+	public Component getHeader()
+	{
+		return header;
+	}
 
-    
-    /*
-     * Inserts the WizardStep at the specified position in this list. 
-     * Shifts the step currently at that position (if any) and any subsequent steps
-     *  to the right (adds one to their indices).
-     */
-    public void addStep(WizardStep step, int index)
-    {
-    	String id = "wizard-step-" + step.hashCode();
-    	addStep(step, id, index);
-    }
- 
-    /*
-     * Inserts the WizardStep at the specified position in this list. 
-     * Shifts the step currently at that position (if any) and any subsequent steps
-     *  to the right (adds one to their indices).
-     */
-    public void addStep(WizardStep step, String id, int index)
-    {
-    	if (idMap.containsKey(id)) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "A step with given id %s already exists. You must use unique identifiers for the steps.",
-                            id));
-        }
-		
+	/*
+	 * Inserts the WizardStep at the specified position in this list. Shifts the
+	 * step currently at that position (if any) and any subsequent steps to the
+	 * right (adds one to their indices).
+	 */
+	public void addStep(WizardStep step, int index)
+	{
+		String id = "wizard-step-" + step.hashCode();
+		addStep(step, id, index);
+	}
+
+	/*
+	 * Inserts the WizardStep at the specified position in this list. Shifts the
+	 * step currently at that position (if any) and any subsequent steps to the
+	 * right (adds one to their indices).
+	 */
+	public void addStep(WizardStep step, String id, int index)
+	{
+		if (idMap.containsKey(id))
+		{
+			throw new IllegalArgumentException(String.format(
+					"A step with given id %s already exists. You must use unique identifiers for the steps.", id));
+		}
+
 		steps.add(index, step);
 		idMap.put(id, step);
 
-        updateButtons();
+		updateButtons();
 
-        // notify listeners
-        fireEvent(new WizardStepSetChangedEvent(this));
+		// notify listeners
+		fireEvent(new WizardStepSetChangedEvent(this));
 
-        // activate the first step immediately
-        if (currentStep == null) {
-            activateStep(step);
-        }
-        
-    }
-    
+		// activate the first step immediately
+		if (currentStep == null)
+		{
+			activateStep(step);
+		}
+
+	}
+
 	/**
 	 * Adds a step after an existing step
 	 * 
@@ -290,354 +319,417 @@ public class Wizard extends CustomComponent implements
 	public void addStepAfterStep(WizardStep newStep, String newId, WizardStep existingStep)
 	{
 		int idx = steps.indexOf(existingStep) + 1;
-		Preconditions.checkArgument(idx > -1, "Can not insert " + newStep + " after the step " + existingStep + " as "
-				+ existingStep + " is not currently a step in the wizard");
+		if (idx < 0)
+		{
+			throw new IllegalArgumentException("Can not insert " + newStep + " after the step " + existingStep + " as "
+					+ existingStep + " is not currently a step in the wizard");
+		}
 		addStep(newStep, newId, idx);
 	}
-	
+
 	/**
-     * Adds a step after an existing step
-     * @param newStep - new step to add
-     * @param newId - id for the new step
-     * @param existingStep - an existing step after which the step will be inserted
-     */
+	 * Adds a step after an existing step
+	 * 
+	 * @param newStep
+	 *            - new step to add
+	 * @param newId
+	 *            - id for the new step
+	 * @param existingStep
+	 *            - an existing step after which the step will be inserted
+	 */
 	public void addStepAfterStep(WizardStep newStep, WizardStep existingStep)
 	{
 		String id = "wizard-step-" + "-" + (stepIndex++);
-		addStepAfterStep(newStep, id,existingStep);
+		addStepAfterStep(newStep, id, existingStep);
 	}
 
-    /**
-     * Adds a step to this Wizard with the given identifier. The used {@code id}
-     * must be unique or an {@link IllegalArgumentException} is thrown. If you
-     * don't wish to explicitly provide an identifier, you can use the
-     * {@link #addStep(WizardStep)} method.
-     * 
-     * @param step
-     * @param id
-     * @throws IllegalStateException
-     *             if the given {@code id} already exists.
-     */
-    public void addStep(WizardStep step, String id) {
-    	addStep(step, id, steps.size());
-    }
+	/**
+	 * Adds a step to this Wizard with the given identifier. The used {@code id}
+	 * must be unique or an {@link IllegalArgumentException} is thrown. If you
+	 * don't wish to explicitly provide an identifier, you can use the
+	 * {@link #addStep(WizardStep)} method.
+	 * 
+	 * @param step
+	 * @param id
+	 * @throws IllegalStateException
+	 *             if the given {@code id} already exists.
+	 */
+	public void addStep(WizardStep step, String id)
+	{
+		addStep(step, id, steps.size());
+	}
 
-    /**
-     * Adds a step to this Wizard. The WizardStep will be assigned an identifier
-     * automatically. If you wish to provide an explicit identifier for your
-     * WizardStep, you can use the {@link #addStep(WizardStep, String)} method
-     * instead.
-     * 
-     * @param step
-     */
-    public void addStep(WizardStep step) {
-        addStep(step, "wizard-step-" + stepIndex++);
-    }
+	/**
+	 * Adds a step to this Wizard. The WizardStep will be assigned an identifier
+	 * automatically. If you wish to provide an explicit identifier for your
+	 * WizardStep, you can use the {@link #addStep(WizardStep, String)} method
+	 * instead.
+	 * 
+	 * @param step
+	 */
+	public void addStep(WizardStep step)
+	{
+		addStep(step, "wizard-step-" + stepIndex++);
+	}
 
-    public void addListener(WizardProgressListener listener) {
-        addListener(WizardCompletedEvent.class, listener,
-                WIZARD_COMPLETED_METHOD);
-        addListener(WizardStepActivationEvent.class, listener,
-                WIZARD_ACTIVE_STEP_CHANGED_METHOD);
-        addListener(WizardStepSetChangedEvent.class, listener,
-                WIZARD_STEP_SET_CHANGED_METHOD);
-        addListener(WizardCancelledEvent.class, listener,
-                WIZARD_CANCELLED_METHOD);
-    }
+	public void addListener(WizardProgressListener listener)
+	{
+		addListener(WizardCompletedEvent.class, listener, WIZARD_COMPLETED_METHOD);
+		addListener(WizardStepActivationEvent.class, listener, WIZARD_ACTIVE_STEP_CHANGED_METHOD);
+		addListener(WizardStepSetChangedEvent.class, listener, WIZARD_STEP_SET_CHANGED_METHOD);
+		addListener(WizardCancelledEvent.class, listener, WIZARD_CANCELLED_METHOD);
+	}
 
-    public void removeListener(WizardProgressListener listener) {
-        removeListener(WizardCompletedEvent.class, listener,
-                WIZARD_COMPLETED_METHOD);
-        removeListener(WizardStepActivationEvent.class, listener,
-                WIZARD_ACTIVE_STEP_CHANGED_METHOD);
-        removeListener(WizardStepSetChangedEvent.class, listener,
-                WIZARD_STEP_SET_CHANGED_METHOD);
-        removeListener(WizardCancelledEvent.class, listener,
-                WIZARD_CANCELLED_METHOD);
-    }
+	public void removeListener(WizardProgressListener listener)
+	{
+		removeListener(WizardCompletedEvent.class, listener, WIZARD_COMPLETED_METHOD);
+		removeListener(WizardStepActivationEvent.class, listener, WIZARD_ACTIVE_STEP_CHANGED_METHOD);
+		removeListener(WizardStepSetChangedEvent.class, listener, WIZARD_STEP_SET_CHANGED_METHOD);
+		removeListener(WizardCancelledEvent.class, listener, WIZARD_CANCELLED_METHOD);
+	}
 
-    public List<WizardStep> getSteps() {
-        return Collections.unmodifiableList(steps);
-    }
+	public List<WizardStep> getSteps()
+	{
+		return Collections.unmodifiableList(steps);
+	}
 
-    /**
-     * Returns {@code true} if the given step is already completed by the user.
-     * 
-     * @param step
-     *            step to check for completion.
-     * @return {@code true} if the given step is already completed.
-     */
-    public boolean isCompleted(WizardStep step) {
-        return steps.indexOf(step) < steps.indexOf(currentStep);
-    }
+	/**
+	 * Returns {@code true} if the given step is already completed by the user.
+	 * 
+	 * @param step
+	 *            step to check for completion.
+	 * @return {@code true} if the given step is already completed.
+	 */
+	public boolean isCompleted(WizardStep step)
+	{
+		return steps.indexOf(step) < steps.indexOf(currentStep);
+	}
 
-    /**
-     * Returns {@code true} if the given step is the currently active step.
-     * 
-     * @param step
-     *            step to check for.
-     * @return {@code true} if the given step is the currently active step.
-     */
-    public boolean isActive(WizardStep step) {
-        return (step == currentStep);
-    }
+	/**
+	 * Returns {@code true} if the given step is the currently active step.
+	 * 
+	 * @param step
+	 *            step to check for.
+	 * @return {@code true} if the given step is the currently active step.
+	 */
+	public boolean isActive(WizardStep step)
+	{
+		return (step == currentStep);
+	}
 
-    private void updateButtons() {
-        if (isLastStep(currentStep)) {
-            finishButton.setEnabled(true);
-            nextButton.setEnabled(false);
-        } else {
-            finishButton.setEnabled(false);
-            nextButton.setEnabled(true);
-        }
-        backButton.setEnabled(!isFirstStep(currentStep));
-    }
+	private void updateButtons()
+	{
+		if (isLastStep(currentStep))
+		{
+			finishButton.setEnabled(true);
+			nextButton.setEnabled(false);
+		}
+		else
+		{
+			finishButton.setEnabled(false);
+			nextButton.setEnabled(true);
+		}
+		backButton.setEnabled(!isFirstStep(currentStep));
+	}
 
-    public Button getNextButton() {
-        return nextButton;
-    }
+	public Button getNextButton()
+	{
+		return nextButton;
+	}
 
-    public Button getBackButton() {
-        return backButton;
-    }
+	public Button getBackButton()
+	{
+		return backButton;
+	}
 
-    public Button getFinishButton() {
-        return finishButton;
-    }
+	public Button getFinishButton()
+	{
+		return finishButton;
+	}
 
-    public Button getCancelButton() {
-        return cancelButton;
-    }
+	public Button getCancelButton()
+	{
+		return cancelButton;
+	}
 
-    protected void activateStep(WizardStep step) {
-        if (step == null) {
-            return;
-        }
+	protected void activateStep(WizardStep step)
+	{
+		if (step == null)
+		{
+			return;
+		}
 
-        if (currentStep != null) {
-            if (currentStep.equals(step)) {
-                // already active
-                return;
-            }
+		if (currentStep != null)
+		{
+			if (currentStep.equals(step))
+			{
+				// already active
+				return;
+			}
 
-            // ask if we're allowed to move
-            boolean advancing = steps.indexOf(step) > steps
-                    .indexOf(currentStep);
-            if (advancing) {
-                if (!currentStep.onAdvance()) {
-                    // not allowed to advance
-                    return;
-                }
-            } else {
-                if (!currentStep.onBack()) {
-                    // not allowed to go back
-                    return;
-                }
-            }
+			// ask if we're allowed to move
+			boolean advancing = steps.indexOf(step) > steps.indexOf(currentStep);
+			if (advancing)
+			{
+				if (!currentStep.onAdvance())
+				{
+					// not allowed to advance
+					return;
+				}
+			}
+			else
+			{
+				if (!currentStep.onBack())
+				{
+					// not allowed to go back
+					return;
+				}
+			}
 
-            // keep track of the last step that was completed
-            int currentIndex = steps.indexOf(currentStep);
-            if (lastCompletedStep == null
-                    || steps.indexOf(lastCompletedStep) < currentIndex) {
-                lastCompletedStep = currentStep;
-            }
-            saveScrollPosition(currentStep);
-        }
+			// keep track of the last step that was completed
+			int currentIndex = steps.indexOf(currentStep);
+			if (lastCompletedStep == null || steps.indexOf(lastCompletedStep) < currentIndex)
+			{
+				lastCompletedStep = currentStep;
+			}
+			saveScrollPosition(currentStep);
+		}
 
-        contentPanel.setContent(step.getContent());
-        currentStep = step;
-        restoreScrollPosition(currentStep);
+		contentPanel.setContent(step.getContent());
+		currentStep = step;
+		restoreScrollPosition(currentStep);
 
-        updateUriFragment();
-        updateButtons();
-        fireEvent(new WizardStepActivationEvent(this, step));
-    }
+		updateUriFragment();
+		updateButtons();
+		fireEvent(new WizardStepActivationEvent(this, step));
+	}
 
-    private void restoreScrollPosition(WizardStep step) {
-        ScrollPosition scrollPosition = scrollPositions.get(step);
-        if (scrollPosition != null) {
-            contentPanel.setScrollTop(scrollPosition.scrollTop);
-            contentPanel.setScrollLeft(scrollPosition.scrollLeft);
-        } else {
-            // scroll to top
-            contentPanel.setScrollTop(0);
-            contentPanel.setScrollLeft(0);
-        }
-    }
+	private void restoreScrollPosition(WizardStep step)
+	{
+		ScrollPosition scrollPosition = scrollPositions.get(step);
+		if (scrollPosition != null)
+		{
+			contentPanel.setScrollTop(scrollPosition.scrollTop);
+			contentPanel.setScrollLeft(scrollPosition.scrollLeft);
+		}
+		else
+		{
+			// scroll to top
+			contentPanel.setScrollTop(0);
+			contentPanel.setScrollLeft(0);
+		}
+	}
 
-    private void saveScrollPosition(WizardStep step) {
-        // remove possible old value
-        scrollPositions.remove(step);
+	private void saveScrollPosition(WizardStep step)
+	{
+		// remove possible old value
+		scrollPositions.remove(step);
 
-        int scrollTop = contentPanel.getScrollTop();
-        int scrollLeft = contentPanel.getScrollLeft();
-        if (scrollTop > 0 || scrollLeft > 0) {
-            // save only if not at the default value (both 0)
-            scrollPositions
-                    .put(step, new ScrollPosition(scrollTop, scrollLeft));
-        }
-    }
+		int scrollTop = contentPanel.getScrollTop();
+		int scrollLeft = contentPanel.getScrollLeft();
+		if (scrollTop > 0 || scrollLeft > 0)
+		{
+			// save only if not at the default value (both 0)
+			scrollPositions.put(step, new ScrollPosition(scrollTop, scrollLeft));
+		}
+	}
 
-    protected void activateStep(String id) {
-        WizardStep step = idMap.get(id);
-        if (step != null) {
-            // check that we don't go past the lastCompletedStep by using the id
-            int lastCompletedIndex = lastCompletedStep == null ? -1 : steps
-                    .indexOf(lastCompletedStep);
-            int stepIndex = steps.indexOf(step);
+	protected void activateStep(String id)
+	{
+		WizardStep step = idMap.get(id);
+		if (step != null)
+		{
+			// check that we don't go past the lastCompletedStep by using the id
+			int lastCompletedIndex = lastCompletedStep == null ? -1 : steps.indexOf(lastCompletedStep);
+			int stepIndex = steps.indexOf(step);
 
-            if (lastCompletedIndex < stepIndex) {
-                activateStep(lastCompletedStep);
-            } else {
-                activateStep(step);
-            }
-        }
-    }
+			if (lastCompletedIndex < stepIndex)
+			{
+				activateStep(lastCompletedStep);
+			}
+			else
+			{
+				activateStep(step);
+			}
+		}
+	}
 
-    protected String getId(WizardStep step) {
-        for (Map.Entry<String, WizardStep> entry : idMap.entrySet()) {
-            if (entry.getValue().equals(step)) {
-                return entry.getKey();
-            }
-        }
-        return null;
-    }
+	protected String getId(WizardStep step)
+	{
+		for (Map.Entry<String, WizardStep> entry : idMap.entrySet())
+		{
+			if (entry.getValue().equals(step))
+			{
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
 
-    private void updateUriFragment() {
-        if (isUriFragmentEnabled()) {
-            String currentStepId = getId(currentStep);
-            if (currentStepId != null && currentStepId.length() > 0) {
-                Page.getCurrent().setUriFragment(currentStepId, false);
-            } else {
-                Page.getCurrent().setUriFragment(null, false);
-            }
-        }
-    }
+	private void updateUriFragment()
+	{
+		if (isUriFragmentEnabled())
+		{
+			String currentStepId = getId(currentStep);
+			if (currentStepId != null && currentStepId.length() > 0)
+			{
+				Page.getCurrent().setUriFragment(currentStepId, false);
+			}
+			else
+			{
+				Page.getCurrent().setUriFragment(null, false);
+			}
+		}
+	}
 
-    protected boolean isFirstStep(WizardStep step) {
-        if (step != null) {
-            return steps.indexOf(step) == 0;
-        }
-        return false;
-    }
+	protected boolean isFirstStep(WizardStep step)
+	{
+		if (step != null)
+		{
+			return steps.indexOf(step) == 0;
+		}
+		return false;
+	}
 
-    protected boolean isLastStep(WizardStep step) {
-        if (step != null && !steps.isEmpty()) {
-            return steps.indexOf(step) == (steps.size() - 1);
-        }
-        return false;
-    }
+	protected boolean isLastStep(WizardStep step)
+	{
+		if (step != null && !steps.isEmpty())
+		{
+			return steps.indexOf(step) == (steps.size() - 1);
+		}
+		return false;
+	}
 
-    /**
-     * Cancels this Wizard triggering a {@link WizardCancelledEvent}. This
-     * method is called when user clicks the cancel button.
-     */
-    public void cancel() {
-        fireEvent(new WizardCancelledEvent(this));
-    }
+	/**
+	 * Cancels this Wizard triggering a {@link WizardCancelledEvent}. This
+	 * method is called when user clicks the cancel button.
+	 */
+	public void cancel()
+	{
+		fireEvent(new WizardCancelledEvent(this));
+	}
 
-    /**
-     * Triggers a {@link WizardCompletedEvent} if the current step is the last
-     * step and it allows advancing (see {@link WizardStep#onAdvance()}). This
-     * method is called when user clicks the finish button.
-     */
-    public void finish() {
-        if (isLastStep(currentStep) && currentStep.onAdvance()) {
-            // next (finish) allowed -> fire complete event
-            fireEvent(new WizardCompletedEvent(this));
-        }
-    }
+	/**
+	 * Triggers a {@link WizardCompletedEvent} if the current step is the last
+	 * step and it allows advancing (see {@link WizardStep#onAdvance()}). This
+	 * method is called when user clicks the finish button.
+	 */
+	public void finish()
+	{
+		if (isLastStep(currentStep) && currentStep.onAdvance())
+		{
+			// next (finish) allowed -> fire complete event
+			fireEvent(new WizardCompletedEvent(this));
+		}
+	}
 
-    /**
-     * Activates the next {@link WizardStep} if the current step allows
-     * advancing (see {@link WizardStep#onAdvance()}) or calls the
-     * {@link #finish()} method the current step is the last step. This method
-     * is called when user clicks the next button.
-     */
-    public void next() {
-        if (isLastStep(currentStep)) {
-            finish();
-        } else {
-            int currentIndex = steps.indexOf(currentStep);
-            activateStep(steps.get(currentIndex + 1));
-        }
-    }
+	/**
+	 * Activates the next {@link WizardStep} if the current step allows
+	 * advancing (see {@link WizardStep#onAdvance()}) or calls the
+	 * {@link #finish()} method the current step is the last step. This method
+	 * is called when user clicks the next button.
+	 */
+	public void next()
+	{
+		if (isLastStep(currentStep))
+		{
+			finish();
+		}
+		else
+		{
+			int currentIndex = steps.indexOf(currentStep);
+			activateStep(steps.get(currentIndex + 1));
+		}
+	}
 
-    /**
-     * Activates the previous {@link WizardStep} if the current step allows
-     * going back (see {@link WizardStep#onBack()}) and the current step is not
-     * the first step. This method is called when user clicks the back button.
-     */
-    public void back() {
-        int currentIndex = steps.indexOf(currentStep);
-        if (currentIndex > 0) {
-            activateStep(steps.get(currentIndex - 1));
-        }
-    }
+	/**
+	 * Activates the previous {@link WizardStep} if the current step allows
+	 * going back (see {@link WizardStep#onBack()}) and the current step is not
+	 * the first step. This method is called when user clicks the back button.
+	 */
+	public void back()
+	{
+		int currentIndex = steps.indexOf(currentStep);
+		if (currentIndex > 0)
+		{
+			activateStep(steps.get(currentIndex - 1));
+		}
+	}
 
-    @Override
-    public void uriFragmentChanged(UriFragmentChangedEvent event) {
-        if (isUriFragmentEnabled()) {
-            String fragment = event.getUriFragment();
-            if ((fragment == null || fragment.equals("")) && !steps.isEmpty()) {
-                // empty fragment -> set the fragment of first step
-                Page.getCurrent().setUriFragment(getId(steps.get(0)));
-            } else {
-                activateStep(fragment);
-            }
-        }
-    }
+	@Override
+	public void uriFragmentChanged(UriFragmentChangedEvent event)
+	{
+		if (isUriFragmentEnabled())
+		{
+			String fragment = event.getUriFragment();
+			if ((fragment == null || fragment.equals("")) && !steps.isEmpty())
+			{
+				// empty fragment -> set the fragment of first step
+				Page.getCurrent().setUriFragment(getId(steps.get(0)));
+			}
+			else
+			{
+				activateStep(fragment);
+			}
+		}
+	}
 
-    /**
-     * Removes the given step from this Wizard. An {@link IllegalStateException}
-     * is thrown if the given step is already completed or is the currently
-     * active step.
-     * 
-     * @param stepToRemove
-     *            the step to remove.
-     * @see #isCompleted(WizardStep)
-     * @see #isActive(WizardStep)
-     */
-    public void removeStep(WizardStep stepToRemove) {
-        if (idMap.containsValue(stepToRemove)) {
-            for (Map.Entry<String, WizardStep> entry : idMap.entrySet()) {
-                if (entry.getValue().equals(stepToRemove)) {
-                    // delegate the actual removal to the overloaded method
-                    removeStep(entry.getKey());
-                    return;
-                }
-            }
-        }
-    }
+	/**
+	 * Removes the given step from this Wizard. An {@link IllegalStateException}
+	 * is thrown if the given step is already completed or is the currently
+	 * active step.
+	 * 
+	 * @param stepToRemove
+	 *            the step to remove.
+	 * @see #isCompleted(WizardStep)
+	 * @see #isActive(WizardStep)
+	 */
+	public void removeStep(WizardStep stepToRemove)
+	{
+		if (idMap.containsValue(stepToRemove))
+		{
+			for (Map.Entry<String, WizardStep> entry : idMap.entrySet())
+			{
+				if (entry.getValue().equals(stepToRemove))
+				{
+					// delegate the actual removal to the overloaded method
+					removeStep(entry.getKey());
+					return;
+				}
+			}
+		}
+	}
 
-    /**
-     * Removes the step with given id from this Wizard. An
-     * {@link IllegalStateException} is thrown if the given step is already
-     * completed or is the currently active step.
-     * 
-     * @param id
-     *            identifier of the step to remove.
-     * @see #isCompleted(WizardStep)
-     * @see #isActive(WizardStep)
-     */
-    public void removeStep(String id) {
-        if (idMap.containsKey(id)) {
-            WizardStep stepToRemove = idMap.get(id);
-            if (isCompleted(stepToRemove)) {
-                throw new IllegalStateException(
-                        "Already completed step cannot be removed.");
-            }
-            if (isActive(stepToRemove)) {
-                throw new IllegalStateException(
-                        "Currently active step cannot be removed.");
-            }
+	/**
+	 * Removes the step with given id from this Wizard. An
+	 * {@link IllegalStateException} is thrown if the given step is already
+	 * completed or is the currently active step.
+	 * 
+	 * @param id
+	 *            identifier of the step to remove.
+	 * @see #isCompleted(WizardStep)
+	 * @see #isActive(WizardStep)
+	 */
+	public void removeStep(String id)
+	{
+		if (idMap.containsKey(id))
+		{
+			WizardStep stepToRemove = idMap.get(id);
+			if (isCompleted(stepToRemove))
+			{
+				throw new IllegalStateException("Already completed step cannot be removed.");
+			}
+			if (isActive(stepToRemove))
+			{
+				throw new IllegalStateException("Currently active step cannot be removed.");
+			}
 
-            idMap.remove(id);
-            steps.remove(stepToRemove);
+			idMap.remove(id);
+			steps.remove(stepToRemove);
 
-            // notify listeners
-            fireEvent(new WizardStepSetChangedEvent(this));
-        }
-    }
+			// notify listeners
+			fireEvent(new WizardStepSetChangedEvent(this));
+		}
+	}
 
 }
